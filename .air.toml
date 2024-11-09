@@ -1,0 +1,13 @@
+# Config file for Air - Live reloading for Go
+
+# Watch for file changes in these directories
+[build]
+cmd = "/usr/bin/go build -o ./backend-api cmd/api/main.go"
+bin = "./backend-api"
+include_ext = ["go", "tmpl", "tpl", "html"]
+exclude_dir = ["vendor", "tmp"]
+
+# Log settings
+[log]
+level = "debug"
+
