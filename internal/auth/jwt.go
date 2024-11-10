@@ -1,12 +1,12 @@
 package auth
 
 import (
-	"os"
-	"time"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
-	"log"
 	"github.com/joho/godotenv"
+	"log"
+	"os"
+	"time"
 )
 
 var jwtSecret []byte
@@ -27,13 +27,13 @@ func init() {
 func GenerateToken(username string) (string, error) {
 	claims := jwt.MapClaims{
 		"username": username,
-		"exp": time.Now().Add(24 * time.Hour).Unix(),
+		"exp":      time.Now().Add(24 * time.Hour).Unix(),
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(jwtSecret)
 }
 
-func ValidateTOken(tokenString string) (string, error) {
+func ValidateToken(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil
 	})

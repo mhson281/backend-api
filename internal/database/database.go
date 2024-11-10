@@ -12,13 +12,13 @@ var DB *sql.DB
 // Initialize db and create users table
 func Init() {
 	var err error
-	DB, err = sql.Open("sqlite3", ".users.db")
+	DB, err = sql.Open("sqlite3", "./users.db")
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
 	createTable := `
-	CREATE TABLE IF NOT EXIST users (
+	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT UNIQUE NOT NULL,
 		password TEXT NOT NULL

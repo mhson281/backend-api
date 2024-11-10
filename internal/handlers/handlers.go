@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log/slog"
 	"math"
@@ -8,7 +9,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mhson281/backend-api/internal/auth"
+	"github.com/mhson281/backend-api/internal/database"
 	"github.com/mhson281/backend-api/internal/models"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func HandleCalculation(w http.ResponseWriter, r *http.Request) {
@@ -68,3 +72,65 @@ func HandleCalculation(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
+
+func HandleRegister(w http.ResponseWriter, r *http.Request) {
+	var req  models.RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Hashed password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+	}
+
+	// Insert new user into sql db
+	_, err = database.DB.Exec("INSERT INTO users(username, password) VALUES (?, ?)", req.Username, string(hashedPassword))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Username already exists", http.StatusConflict)
+		} else {
+			http.Error(w, "Failed to register user", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	res := models.RegisterResponse{Message: "User registered successfully"}
+	json.NewEncoder(w).Encode(res)
+}
+
+func HandleLogin(w http.ResponseWriter, r *http.Request) {
+	var req models.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusInternalServerError)
+		return
+	}
+
+	var storedPassword string
+	row := database.DB.QueryRow("SELECT password from users where username = ?", req.Username)
+	if err := row.Scan(&storedPassword); err != nil {
+		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+		return
+	}
+
+	// Compare hashed password with stored Password
+	if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(req.Password)); err != nil {
+		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+		return
+	}
+
+	// Generate JWT token
+	token, err := auth.GenerateToken(req.Username)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
+	res := models.LoginResponse{Token: token}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(res)
+
+}
+

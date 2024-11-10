@@ -1,17 +1,23 @@
 package main
 
 import (
-	"net/http"
 	"log"
+	"net/http"
 
+	"github.com/mhson281/backend-api/internal/database"
 	"github.com/mhson281/backend-api/internal/handlers"
+	"github.com/mhson281/backend-api/internal/middleware"
 )
 
 func main() {
+	// initialize the sqlite db
+	database.Init()
+
 	// create a new http mux router
 	mux := http.NewServeMux()
-
-	mux.HandleFunc("/calculate", handlers.HandleCalculation)
+	mux.Handle("/calculate", middleware.JWTAuthMiddleware(http.HandlerFunc(handlers.HandleCalculation)))
+	mux.HandleFunc("/register", handlers.HandleRegister)
+  mux.HandleFunc("/login", handlers.HandleLogin)
 
 	// start the HTTP router
 	log.Println("Starting server on port 8080...")
